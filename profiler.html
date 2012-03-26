@@ -1,0 +1,310 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+	<title></title>
+	<script type="text/javascript">
+	
+		var JSProfile = (function() {
+			
+			var profiles = {},
+				running = false,
+				mem = [];
+			
+			function startProfile(context) {
+				var name, fn,
+				contextName = context.__proto__.constructor.name;
+				profiles[contextName] = {};
+				for (name in context) {
+					fn = context[name];
+					if (typeof fn === 'function') {
+						context[name] = (function(name, fn) {
+							var args = arguments;
+							return function() {
+								addStats(contextName, true, name, arguments);
+								var res = fn.apply(this, arguments);
+								addStats(contextName, false, name, arguments);
+								return res;
+							}
+						})(name, fn);
+					}
+				}
+			}
+			
+			function stopProfile(context) {
+				var ctx = profiles[context.__proto__.constructor.name];
+				for (name in ctx) {
+					var obj = ctx[name];
+					if (obj.count == 1) {
+						console.log(name + "() C = 1, T = " + roundNumber(obj.time, 2) + "ms, M = " + bytesToSize(obj.memory, 2)); 
+					} else {
+						console.log(name + "() C = " + obj.count + ", " + String.fromCharCode(0x0394) + "T = " + roundNumber(obj.time / obj.count, 2) + "ms, " + String.fromCharCode(0x0394) + "M = " + bytesToSize(obj.memory / obj.count, 2))
+					}
+				}
+				delete(profiles[context.__proto__.constructor.name]);
+			}
+			
+			function addStats(contextName, start, name, args) {
+				var obj = profiles[contextName][name] || (profiles[contextName][name] = {count:0, time:0, memory:0, ts:0, tm:0});
+				if (start) {
+					obj.count += 1;
+					obj.ts = +new Date();
+					obj.tm = console.memory.usedJSHeapSize;
+				} else {
+					obj.time += (+new Date() - obj.ts);
+					var mem = console.memory.usedJSHeapSize - obj.tm;
+					if (mem > 0) {
+						obj.memory += mem;
+					}
+				}
+			}
+			
+			function bytesToSize(bytes, precision) {	
+				var kilobyte = 1024;
+				var megabyte = kilobyte * 1024;
+				var gigabyte = megabyte * 1024;
+				var terabyte = gigabyte * 1024;
+				precision = precision || 2
+				if ((bytes >= 0) && (bytes < kilobyte)) {
+					return Math.round(bytes) + ' B';
+
+				} else if ((bytes >= kilobyte) && (bytes < megabyte)) {
+					return (bytes / kilobyte).toFixed(precision) + ' KB';
+
+				} else if ((bytes >= megabyte) && (bytes < gigabyte)) {
+					return (bytes / megabyte).toFixed(precision) + ' MB';
+
+				} else if ((bytes >= gigabyte) && (bytes < terabyte)) {
+					return (bytes / gigabyte).toFixed(precision) + ' GB';
+
+				} else if (bytes >= terabyte) {
+					return (bytes / terabyte).toFixed(precision) + ' TB';
+
+				} else {
+					return Math.round(bytes) + ' B';
+				}
+			}
+			
+			function roundNumber(num, dec) { 
+				return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec); 
+			}
+			
+			function getOrCreateGraph() {
+				
+			}
+			
+			var mem = [];
+			function showStats(context) {
+				var graph = getOrCreateGraph();
+				
+				mem.push(console.memory.usedJSHeapSize);
+				if (mem.length > 88) { mem.shift(); }
+				
+				var canvas = document.getElementById('memgraph');  
+				if (canvas) {
+					var ctx = canvas.getContext('2d');  
+					ctx.fillStyle = '#FFFFFF'; 
+					ctx.fillRect(0,0,88,40);
+					ctx.fillStyle = '#7292CF'; 
+					ctx.beginPath();
+					ctx.moveTo(0, 40)
+					ctx.lineTo(0, 40 - (mem[0] * 40 ) / console.memory.totalJSHeapSize);
+					for (var i = 0; i < mem.length; i++) {
+						var x = ((i + 1) * 88) / mem.length;
+						var y = (mem[i] * 40 ) / console.memory.totalJSHeapSize
+						ctx.lineTo(x, 40 - y);
+					}
+					ctx.lineTo(88,40);
+					ctx.lineTo(0,40);
+					ctx.fill();	
+
+					document.getElementById("mmmax").innerHTML = bytesToSize(console.memory.jsHeapSizeLimit, 2);
+					document.getElementById("mmtot").innerHTML = bytesToSize(console.memory.totalJSHeapSize, 2);
+					document.getElementById("mmusd").innerHTML = bytesToSize(console.memory.usedJSHeapSize, 2);
+				}
+				running && setTimeout(function() { showStats(context) }, 500);
+			}
+			
+			return {
+				start : function(context, realtime) {
+					realtime = typeof realtime == "undefind" ? false : realtime;
+					startProfile(context || window);
+					realtime && (running = true) && showStats(context || window);
+				},
+				stop : function(context) {
+					running = false;
+					mem = [];
+					stopProfile(context || window);
+				}
+			}
+		})()
+	
+		function readable(bytes, precision) {
+			var kilobyte = 1024;
+			var megabyte = kilobyte * 1024;
+			var gigabyte = megabyte * 1024;
+			var terabyte = gigabyte * 1024;
+			precision = precision || 2;
+			if ((bytes >= 0) && (bytes < kilobyte)) {
+				return bytes + ' B';
+
+			} else if ((bytes >= kilobyte) && (bytes < megabyte)) {
+				return (bytes / kilobyte).toFixed(precision) + ' KB';
+
+			} else if ((bytes >= megabyte) && (bytes < gigabyte)) {
+				return (bytes / megabyte).toFixed(precision) + ' MB';
+
+			} else if ((bytes >= gigabyte) && (bytes < terabyte)) {
+				return (bytes / gigabyte).toFixed(precision) + ' GB';
+
+			} else if (bytes >= terabyte) {
+				return (bytes / terabyte).toFixed(precision) + ' TB';
+
+			} else {
+				return bytes + ' B';
+			}
+		}
+		
+		JSProfile.start(window, true);
+
+		var ObjectContainer = [];
+		var HOW_MANY_OBJ = 100000;
+		var memoryHolder;
+
+		function Heavy () {
+			this.load = function(){
+				var str = 'gabagesgabagesgabagesgabagesgabages';
+				for(var i = 0; i < 9999; i++){
+					str += str;
+				}
+				this._loads = str;
+			};
+			this.release = function(){
+				this._loads = null;
+			}
+		}
+
+		function Light() {
+		}
+
+		Light.prototype.load = function(){
+			var str = 'gabagesgabagesgabagesgabagesgabages';
+			for(var i = 0; i < 9999; i++){
+				str += str;
+			}
+			this._loads = str;
+		};
+
+		Light.prototype.release = function(){
+			this._loads = null;
+		}
+
+		function createHeavy() {
+			console.log('Creating Heavy objects...');
+			memoryHolder = console.memory.usedJSHeapSize;
+			console.time('Heavy');
+			
+			for(var i = 0; i < HOW_MANY_OBJ; i++){
+				ObjectContainer.push(new Heavy);
+			}
+
+			console.timeEnd('Heavy');
+			console.log("Used JS Heap:", readable(console.memory.usedJSHeapSize - memoryHolder));
+		}
+		
+		function createLight() {
+			console.log('Creating Light objects...');
+			memoryHolder = console.memory.usedJSHeapSize;
+			console.time('Light');
+
+			for(var i = 0; i < HOW_MANY_OBJ; i++){
+				ObjectContainer.push(new Light);
+			}
+
+			console.timeEnd('Light');
+			console.log("Used JS Heap:", readable(console.memory.usedJSHeapSize - memoryHolder));
+		}
+		
+		//createHeavy();
+		//createLight();
+		setInterval(createHeavy, 3000);
+		
+		//JSProfile.stop();
+		
+		
+	</script>
+	<style type="text/css" media="all">
+		#profileStats {
+			border:1px solid rgba(0, 0, 0, 0.5);
+			position:absolute;
+			zindex: 1000;
+			width: 200px;
+			height:300px;
+			box-shadow: 0px 1px 2px 2px rgba(170, 187, 204, 0.3);
+		}
+		#profileStats h1 {
+			margin:0; 
+			padding:3px 10px;
+			font-family:Verdana;
+			font-size:10px;
+			height:13px;
+			background: #efefef;
+		}
+		#profileStats #profileBody {
+			height: 231px;
+		}
+		#profileStats #profileGraphs {
+			background:#efefef;
+			height:40px;
+			padding:5px;
+		}
+		#profileStats #profileGraphs #memory {
+			background:white;
+			border:1px inset;
+			display:inline-block;
+			width:88px;
+			height:40px;
+			margin-right:5px;
+		}
+		#profileStats #profileGraphs #memorydetails {
+			background:white;
+			border:1px inset;
+			float:right;
+			width:80px;
+			height:38px;
+			padding:3px 0px 0px 5px;
+			font-size:9px;
+			font-family: Arial;
+		}
+	</style>
+</head>
+<body>
+	<div id="profileStats">
+		<h1>Profile</h1>
+		<div id="profileBody">
+			
+		</div>
+		<div id="profileGraphs">
+			<div id="memory">
+				<canvas width="88" height="40" id="memgraph" />
+			</div>
+			<div id="memorydetails">
+				<table cellspacing="0" cellpadding="0">
+					<tr>
+						<td width="30">Max:</td>
+						<td id="mmmax">0 B</td>
+					</tr>
+					<tr>
+						<td>Total:</td>
+						<td id="mmtot">0 B</td>
+					</tr>
+					<tr>
+						<td>Used:</td>
+						<td id="mmusd">0 B</td>
+					</tr>
+				</table>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
