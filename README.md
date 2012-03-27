@@ -10,6 +10,12 @@ Tracks what methods are called and how much memory they take.
 
 ## How to use ?
 
+First you need to start google chrome with the following flags:
+	
+``--enable-memory-info --js-flags="--expose-gc"``
+
+The first flag ``--enable-memory-info`` is required so that the heap info is available in code and the second flag is only required if you want to have access to and call the garbage colector when you want (by clicking the trash can icon)
+
 Add the following to the page header
 
 ```html
@@ -43,6 +49,7 @@ Somewhere in your code:
 
 ### Realtime statistics
 Somewhere at the begining of your script
+
 ```javascript
 
 	JSProfile.start(window, true); // true as second parameter will add the html graph window in your page and update it every 500ms
