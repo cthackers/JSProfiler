@@ -5,22 +5,24 @@ var JSProfile = (function() {
         sort = 'n',
         method = 1,
         timeout = undefined,
-        mem = [];
+        mem = [],
     html = '<h1>Profile<span id="gc" title="Call Garbage Collector"></span></h1><div id="profileBody"><table cellspacing="1" cellpadding="0" border="0" width="100%"> \
 		<thead><tr><th class="n">Method<span id="poiner" class="up"></span></th><th class="c" width="50">#</th><th class="t" width="60">(&Delta;) T</th><th class="m" width="60">(&Delta;) M</th></tr></thead> \
 		<tbody id="profileBodyTable"></tbody></table></div><div id="profileGraphs"><div id="memory"><canvas width="195" height="40" id="memgraph" /></div><div id="memorydetails"><table cellspacing="0" cellpadding="0"> \
-		<tr><td width="30">Max:</td><td id="mmmax">0 B</td></tr><tr><td>Total:</td><td id="mmtot">0 B</td></tr><tr><td>Used:</td><td id="mmusd">0 B</td></tr></table></div></div>';
+		<tr><td width="30">Max:</td><td id="mmmax">0 B</td></tr><tr><td>Total:</td><td id="mmtot">0 B</td></tr><tr><td>Used:</td><td id="mmusd">0 B</td></tr></table></div></div>',
     css = '#profileStats {background:#FFF;border:1px solid rgba(0, 0, 0, 0.5);position:absolute;zindex: 1000;width: 300px;height:302px;box-shadow: 0px 1px 2px 2px rgba(170, 187, 204, 0.3);-webkit-user-select: none;position:fixed; right:10px; bottom:10px;}#profileStats h1 \
 		{margin:0; padding:3px 10px;font-family:Verdana !important;font-size:10px !important;height:13px;cursor:default;background: #efefef;}#profileStats #gc {background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUg\
 		AAAAwAAAAMCAMAAABhq6zVAAAABGdBTUEAANbY1E9YMgAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAASUExURWhoaOvr67m5ucbGxqenp39/f1I0BRoAAAAGdFJOU///////ALO/pL8AAAA7SURBVHjahI3BDgAgCEIJ8/\
 		9/OUXWoUvPTcYURRYopG5WXNrEQLyTxBITBIPsLZm9ur6Gwp99OPMIMABxgwFzvcnIqgAAAABJRU5ErkJggg==") no-repeat scroll 0 0 transparent;width: 12px;height: 12px;cursor:pointer;float:right;display:none;}\
-		#profileStats #profileBody {height: 227px;overflow-y:scroll;padding:2px;font-size:9px;font-family: Arial;}#profileStats #profileBody tr th span.up {background: url("data:image/gif;base64,R0lGODlhBgADAIAAAAAAA\
+		#profileStats #profileBody {height: 227px;overflow-y:scroll;padding:2px;font-size:9px !important;font-family: Arial;}#profileStats #profileBody tr td {font-size:9px !important;}#profileStats #profileBody tr th span.up {background: url("data:image/gif;base64,R0lGODlhBgADAIAAAAAAA\
 		AAAACH5BAHoAwEALAAAAAAGAAMAAAIGTAB2mMwFADs=") no-repeat scroll 0 0 transparent;width:6px;height:5px;margin-left:3px;display:inline-block;}#profileStats #profileBody tr th span.down {background: \
 		url("data:image/gif;base64,R0lGODlhBgADAIAAAAAAAAAAACH5BAHoAwEALAAAAAAGAAMAAAIGhB8HwcYFADs=") no-repeat scroll 0 0 transparent;width:6px;height:5px;margin-left:3px;display:inline-block;}#profileStats \
 		#profileBody tr th {background: #efefef;padding:2px 0;-webkit-user-select: none;cursor:pointer;font-size:10px !important;}#profileStats #profileBody tr td:first-child {text-align:left}#profileStats #profileBody tbody tr td {bor\
 		der-bottom:1px solid #ccc;max-width:60px;cursor:default;overflow: hidden;text-overflow: ellipsis;}#profileStats #profileBody tr td {text-align:center}#profileStats #profileGraphs {background:#efefef;heig\
 		ht:40px;padding:5px;}#profileStats #profileGraphs #memory {background:white;border:1px inset;display:inline-block;width:195px;height:40px;}#profileStats #profileGraphs #memorydetails {background:white;b\
-		order:1px inset;float:right;cursor:default;width:80px;height:38px;padding:3px 0px 0px 5px;font-size:9px !important;font-family: Arial !important;}#profileStats #profileGraphs #memorydetails td { font-size:9px !important }';
+		order:1px inset;float:right;cursor:default;width:80px;height:38px;padding:3px 0px 0px 5px;font-size:9px !important;font-family: Arial !important;}#profileStats #profileGraphs #memorydetails td { font-size:9px !important }\
+		::-webkit-scrollbar {width: 5px;margin-left: 3px;}::-webkit-scrollbar-track {-webkit-box-shadow: inset 0 0 1px #efefef;border: 1px solid rgba(170, 170, 170, 0.8);border-top: none;}\
+		::-webkit-scrollbar-thumb {background: #efefef;-webkit-box-shadow: inset 0 0 3px rgba(0,0,0,0.5);}::-webkit-scrollbar-thumb:window-inactive {background: #efefef;}';
 
     function startProfile(context) {
         var name, fn,
@@ -30,14 +32,11 @@ var JSProfile = (function() {
             fn = context[name];
             if (typeof fn === 'function') {
                 context[name] = (function(name, fn) {
-                    var args = arguments, line = '';
+                    var args = arguments;
                     return function() {
-                        addStats(contextName, true, name, arguments);
-                        try {
-                            var res = fn.apply(this, arguments);
-                        } catch (e) {
-                        }
-                        addStats(contextName, false, name, line);
+                        addStats(contextName, true, name);
+                        var res = fn.apply(context, arguments);
+                        addStats(contextName, false, name);
                         return res;
                     }
                 })(name, fn);
@@ -58,12 +57,8 @@ var JSProfile = (function() {
         delete(profiles[context.__proto__.constructor.name]);
     }
 
-    function addStats(contextName, start, name, args) {
-        var f = '';
-        if (args && args[2] && args[3]) {
-            f = "File: " + args[2] + " (line " + args[3] + ")";
-        }
-        var obj = profiles[contextName][name] || (profiles[contextName][name] = {count:0, time:0, memory:0, ts:0, tm:0, f:''});
+    function addStats(contextName, start, name) {
+        var obj = profiles[contextName][name] || (profiles[contextName][name] = {count:0, time:0, memory:0, ts:0, tm:0});
         if (start) {
             obj.count += 1;
             obj.ts = +new Date();
@@ -71,7 +66,6 @@ var JSProfile = (function() {
         } else {
             obj.time += (+new Date() - obj.ts);
             var mem = console.memory.usedJSHeapSize - obj.tm;
-            obj.f = f;
             if (mem > 0) {
                 obj.memory += mem;
             }
@@ -196,7 +190,7 @@ var JSProfile = (function() {
         }
         tmp = tmp.sort(sortFunction);
         for (var i = 0; i < tmp.length; i++) {
-            tmp[i] = '<tr><td title="' + tmp[i].n + '() ' + tmp[i].f + '">' + tmp[i].n + '()</td><td>' + tmp[i].c + '</td><td>' + roundNumber(tmp[i].t, 0) + 'ms</td><td>' + bytesToSize(tmp[i].m, 2) + '</td></tr>';
+            tmp[i] = '<tr><td title="' + tmp[i].n + '()">' + tmp[i].n + '()</td><td>' + tmp[i].c + '</td><td>' + roundNumber(tmp[i].t, 0) + 'ms</td><td>' + bytesToSize(tmp[i].m, 2) + '</td></tr>';
         }
         references.body.innerHTML = tmp.join("");
     }
