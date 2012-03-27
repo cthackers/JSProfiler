@@ -2,14 +2,25 @@
 
 A JavaScript memory profiler for Google Chrome.
 
+![Screenshot](https://raw.github.com/cthackers/JSProfiler/master/screenshot.png)
+
 ## What is it good for?
-	
+
+Tracks what methods are called and how much memory they take.
 
 ## How to use ?
 
+Add the following to the page header
+
+```html
+	<script type="text/javascript" src="jsprofiler.js"></script>
+```
+
+Then somwhere in your code:
+
 ```javascript
 
-	JSProfile.start(window, false); // window is the context to track, false means no realtime tracking should happen
+	JSProfile.start(window, true);
 	
 	function myfunction() {
 	    // some stuff happening here
@@ -28,5 +39,3 @@ A JavaScript memory profiler for Google Chrome.
 	*/
 	
 ```
-
-## 

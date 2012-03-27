@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+	<title></title>
+	<script type="text/javascript" src="jsprofiler.js"></script>	
+	<script type="text/javascript">	
+		function readable(bytes, precision) {
+			var kilobyte = 1024,
+				megabyte = kilobyte * 1024,
+				gigabyte = megabyte * 1024,
+				terabyte = gigabyte * 1024;
+			precision = precision || 2;
+			if ((bytes >= 0) && (bytes < kilobyte)) {
+				return bytes + ' B';
+			} else if ((bytes >= kilobyte) && (bytes < megabyte)) {
+				return (bytes / kilobyte).toFixed(precision) + ' KB';
+			} else if ((bytes >= megabyte) && (bytes < gigabyte)) {
+				return (bytes / megabyte).toFixed(precision) + ' MB';
+			} else if ((bytes >= gigabyte) && (bytes < terabyte)) {
+				return (bytes / gigabyte).toFixed(precision) + ' GB';
+			} else if (bytes >= terabyte) {
+				return (bytes / terabyte).toFixed(precision) + ' TB';
+			} else {
+				return bytes + ' B';
+			}
+		}
+		
+		JSProfile.start(window, true);
+
+		var ObjectContainer = [];
+		var HOW_MANY_OBJ = 100000;
+		var memoryHolder;
+
+		function Heavy () {
+			this.load = function(){
+				var str = 'gabagesgabagesgabagesgabagesgabages';
+				for(var i = 0; i < 9999; i++){
+					str += str;
+				}
+				this._loads = str;
+			};
+			this.release = function(){
+				this._loads = null;
+			}
+		}
+
+		function Light() {
+		}
+
+		Light.prototype.load = function(){
+			var str = 'gabagesgabagesgabagesgabagesgabages';
+			for(var i = 0; i < 9999; i++){
+				str += str;
+			}
+			this._loads = str;
+		};
+
+		Light.prototype.release = function(){
+			this._loads = null;
+		}
+
+		function createHeavy() {
+			console.log('Creating Heavy objects...');
+			memoryHolder = console.memory.usedJSHeapSize;
+			console.time('Heavy');
+			
+			for(var i = 0; i < HOW_MANY_OBJ; i++){
+				ObjectContainer.push(new Heavy);
+			}
+
+			console.timeEnd('Heavy');
+			console.log("Used JS Heap:", readable(console.memory.usedJSHeapSize - memoryHolder));
+		}
+		
+		function createLight() {
+			console.log('Creating Light objects...');
+			memoryHolder = console.memory.usedJSHeapSize;
+			console.time('Light');
+
+			for(var i = 0; i < HOW_MANY_OBJ; i++){
+				ObjectContainer.push(new Light);
+			}
+
+			console.timeEnd('Light');
+			console.log("Used JS Heap:", readable(console.memory.usedJSHeapSize - memoryHolder));
+		}
+		
+		createHeavy();
+		createLight();
+			
+		//JSProfile.stop();
+		
+	</script>
+</head>
+<body>
+
+</body>
+</html>
