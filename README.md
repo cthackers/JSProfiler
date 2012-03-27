@@ -16,12 +16,13 @@ Add the following to the page header
 	<script type="text/javascript" src="jsprofiler.js"></script>
 ```
 
-Then somwhere in your code:
+### Quick code profile
+Somewhere in your code:
 
 ```javascript
 
-	JSProfile.start(window, true);
-	
+	JSProfile.start(window, false);
+
 	function myfunction() {
 	    // some stuff happening here
 	}
@@ -38,4 +39,12 @@ Then somwhere in your code:
 		someotherfunction() C = 1, T = 4905ms, M = 1.22 KB
 	*/
 	
+```
+
+### Realtime statistics
+Somewhere at the begining of your script
+```javascript
+
+	JSProfile.start(window, true); // true as second parameter will add the html graph window in your page and update it every 500ms
+	// your code
 ```
